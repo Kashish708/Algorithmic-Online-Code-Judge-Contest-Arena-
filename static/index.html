@@ -197,7 +197,12 @@
       const u = document.getElementById('authUsername').value, p = document.getElementById('authPassword').value;
       const res = await fetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
       const data = await res.json();
-      if (res.ok) { token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); }
+      if (res.ok) { 
+          token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); 
+          alert("Signup successful!");
+      } else {
+          alert("Signup failed: " + (data.detail || "Unknown error"));
+      }
     }
 
     async function loginUser() {
@@ -205,7 +210,11 @@
       const body = new URLSearchParams(); body.append('username', u); body.append('password', p);
       const res = await fetch('/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body });
       const data = await res.json();
-      if (res.ok) { token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); }
+      if (res.ok) { 
+          token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); 
+      } else {
+          alert("Login failed: " + (data.detail || "Incorrect username or password"));
+      }
     }
 
     function switchTab(tabId) {
