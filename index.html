@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Judge & Contest Arena</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: #1a1a2e; color: #e6e6e6; display: flex; flex-direction: column; height: 100vh; }
+    header { padding: 12px 24px; background: #16213e; border-bottom: 1px solid #0f3460; display: flex; justify-content: space-between; align-items: center; }
+    .container { display: flex; flex: 1; overflow: hidden; }
+    .panel { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .left-panel { border-right: 1px solid #0f3460; background: #161b33; }
+    .card { background: #0f3460; border-radius: 8px; padding: 14px; border: 1px solid #1a3c75; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .tab-btn { padding: 6px 12px; background: #1a1a2e; color: #fff; border: 1px solid #2e4a87; border-radius: 4px; cursor: pointer; }
+    .tab-btn.active { background: #00adb5; border-color: #00adb5; }
+    select, button, input { border-radius: 6px; font-size: 14px; }
+    input { padding: 6px 10px; background: #1a1a2e; border: 1px solid #2e4a87; color: #fff; }
+    select { padding: 8px; background: #1a1a2e; color: #fff; border: 1px solid #2e4a87; }
+    button { padding: 8px 16px; background: #00adb5; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+    button:hover { background: #00848a; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .badge-Accepted { background: #00e676; color: #000; }
+    .badge-Partial { background: #ffb300; color: #000; }
+    .badge-error { background: #ff1744; color: #fff; }
+    .badge-Queued { background: #607d8b; color: #fff; }
+    .metrics { display: flex; gap: 15px; margin-top: 8px; font-size: 13px; color: #a9b7c6; }
+    pre { background: #0a0e17; padding: 8px; border-radius: 4px; overflow-x: auto; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #1a3c75; }
+    #editorContainer { flex: 1; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; min-height: 380px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+</head>
+<body>
+  <header>
+    <div><strong>Judge & Contest Arena</strong></div>
+    <div id="authSection">
+      <input type="text" id="authUsername" placeholder="Username" style="width: 110px;" />
+      <input type="password" id="authPassword" placeholder="Password" style="width: 110px;" />
+      <button onclick="loginUser()">Login</button>
+      <button onclick="registerUser()" style="background:#3f51b5;">Sign Up</button>
+      <span id="userStatus" style="margin-left: 10px; font-size: 13px; color: #00e676;"></span>
+      <button onclick="logoutUser()" id="logoutBtn" style="display:none; background:#ff1744; padding: 4px 8px; font-size:12px; margin-left:8px;">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="panel left-panel">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('probTab')">Problem</button>
+        <button class="tab-btn" onclick="switchTab('leaderTab')">Leaderboard</button>
+        <button class="tab-btn" onclick="switchTab('contestTab')">Contest Arena</button>
+      </div>
+
+      <div id="probTab">
+        <label>Select Problem: </label>
+        <select id="probSelect" onchange="loadProblem()" style="width:100%; margin-bottom: 10px;"></select>
+        <div class="card">
+          <h3 id="probTitle" style="margin-top:0;">Problem Title</h3>
+          <p id="probDesc"></p>
+          <div style="font-size: 12px; color: #9aa5b1;">Limits: <span id="probLimits"></span> | Checker: <span id="probChecker"></span></div>
+          <h4>Sample Cases</h4>
+          <div id="sampleCases"></div>
+        </div>
+      </div>
+
+      <div id="leaderTab" style="display:none;">
+        <div class="card">
+          <h4 style="margin-top:0;">Speed & Memory Rankings</h4>
+          <table>
+            <thead><tr><th>#</th><th>User</th><th>Lang</th><th>Time</th><th>RAM</th></tr></thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="contestTab" style="display:none;">
+        <div class="card">
+          <h4 style="margin-top:0;">Live Contest Standings</h4>
+          <div id="contestStatusMsg" style="font-size:12px; margin-bottom:8px; color:#ffb300;"></div>
+          <table>
+            <thead><tr><th>#</th><th>User</th><th>Solved</th><th>Penalty (min)</th></tr></thead>
+            <tbody id="contestLeaderBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0;">Submissions History</h4>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <label>Language: </label>
+          <select id="langSelect">
+            <option value="cpp">C++</option>
+            <option value="python">Python 3</option>
+            <option value="java">Java</option>
+          </select>
+          <button onclick="toggleTheme()" style="background: #2e4a87; margin-left: 10px;">Toggle Theme</button>
+        </div>
+        <button onclick="submitSolution()">Submit Solution</button>
+      </div>
+
+      <div id="editorContainer"></div>
+
+      <div class="card" id="verdictCard">
+        <h4 style="margin:0 0 8px 0;">Verdict & Metrics</h4>
+        <div id="verdictTag"><span class="badge badge-Queued">Ready</span></div>
+        <div class="metrics">
+          <span>Score: <strong id="metricScore">0 / 0</strong></span>
+          <span>Time: <strong id="metricTime">0 ms</strong></span>
+          <span>Peak RAM: <strong id="metricMem">0 MB</strong></span>
+        </div>
+        <pre id="errorOutput" style="display:none; color: #ff8080;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('token') || '';
+    let currentUsername = localStorage.getItem('username') || '';
+    let problems = [];
+    
+    const clientId = Math.random().toString(36).substring(2, 10);
+    let ws;
+    let editor;
+    let editorTheme = 'vs-dark';
+
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+      editor = monaco.editor.create(document.getElementById('editorContainer'), {
+        value: '// Write code here...',
+        language: 'cpp',
+        theme: editorTheme,
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 14
+      });
+    });
+
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+      if(editor) monaco.editor.setModelLanguage(editor.getModel(), e.target.value);
+    });
+
+    function toggleTheme() {
+      editorTheme = editorTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
+      monaco.editor.setTheme(editorTheme);
+    }
+
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.host}/ws/${clientId}`);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'progress') {
+          document.getElementById('verdictTag').innerHTML = `<span class="badge badge-Queued">${data.text}</span>`;
+        } else if (data.type === 'result') {
+          const badgeClass = data.status === "Accepted" ? "badge-Accepted" : (data.status === "Partial" ? "badge-Partial" : "badge-error");
+          document.getElementById('verdictTag').innerHTML = `<span class="badge ${badgeClass}">${data.status}</span>`;
+          document.getElementById('metricScore').innerText = `${data.score} / ${data.total_score}`;
+          document.getElementById('metricTime').innerText = `${data.execution_time_ms} ms`;
+          document.getElementById('metricMem').innerText = `${data.peak_memory_mb} MB`;
+          if (data.error) {
+            const errBox = document.getElementById('errorOutput');
+            errBox.innerText = data.error;
+            errBox.style.display = "block";
+          }
+          fetchHistory();
+        }
+      };
+      ws.onclose = () => setTimeout(connectWebSocket, 2000);
+    }
+
+    function updateAuthStatus() {
+      if (token && currentUsername) {
+        document.getElementById('userStatus').innerText = `User: ${currentUsername}`;
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+      } else {
+        document.getElementById('userStatus').innerText = 'Guest Mode';
+        document.getElementById('logoutBtn').style.display = 'none';
+      }
+    }
+
+    function logoutUser() {
+      token = ''; currentUsername = '';
+      localStorage.removeItem('token'); localStorage.removeItem('username');
+      updateAuthStatus();
+    }
+
+    async function registerUser() {
+      const u = document.getElementById('authUsername').value, p = document.getElementById('authPassword').value;
+      const res = await fetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+      const data = await res.json();
+      if (res.ok) { token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); }
+    }
+
+    async function loginUser() {
+      const u = document.getElementById('authUsername').value, p = document.getElementById('authPassword').value;
+      const body = new URLSearchParams(); body.append('username', u); body.append('password', p);
+      const res = await fetch('/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body });
+      const data = await res.json();
+      if (res.ok) { token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthStatus(); }
+    }
+
+    function switchTab(tabId) {
+      ['probTab', 'leaderTab', 'contestTab'].forEach(t => document.getElementById(t).style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      event.target.classList.add('active');
+      if (tabId === 'leaderTab') fetchProblemLeaderboard();
+      if (tabId === 'contestTab') fetchContestLeaderboard();
+    }
+
+    async function fetchProblems() {
+      const res = await fetch('/problems'); problems = await res.json();
+      document.getElementById('probSelect').innerHTML = problems.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+      if (problems.length > 0) loadProblem();
+      fetchHistory();
+    }
+
+    function loadProblem() {
+      const p = problems.find(item => item.id === parseInt(document.getElementById('probSelect').value));
+      if (!p) return;
+      document.getElementById('probTitle').innerText = p.title; document.getElementById('probDesc').innerText = p.description;
+      document.getElementById('probLimits').innerText = `${p.time_limit}s / ${p.memory_limit_mb}MB`; document.getElementById('probChecker').innerText = p.checker_type;
+      document.getElementById('sampleCases').innerHTML = p.sample_cases.map((tc, idx) => `<div style="font-size:12px; margin-bottom:8px;"><strong>Sample #${idx + 1} (${tc.weight} pts)</strong><pre>Input: ${tc.input}\nOutput: ${tc.output}</pre></div>`).join('');
+    }
+
+    async function fetchProblemLeaderboard() {
+      const pid = document.getElementById('probSelect').value; if (!pid) return;
+      const res = await fetch(`/problems/${pid}/leaderboard`); const data = await res.json();
+      document.getElementById('leaderboardBody').innerHTML = data.map(d => `<tr><td>${d.rank}</td><td><strong>${d.username}</strong></td><td>${d.language}</td><td>${d.execution_time_ms} ms</td><td>${d.peak_memory_mb} MB</td></tr>`).join('');
+    }
+
+    async function fetchContestLeaderboard() {
+      const res = await fetch('/contests/1/leaderboard');
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('contestLeaderBody').innerHTML = data.standings.map(s => `<tr><td>${s.rank}</td><td><strong>${s.username}</strong></td><td>${s.problems_solved}</td><td>${s.total_penalty}</td></tr>`).join('');
+    }
+
+    async function submitSolution() {
+      if (!editor) {
+        alert("The code editor is still loading. Please wait a moment.");
+        return;
+      }
+      
+      document.getElementById('verdictTag').innerHTML = `<span class="badge badge-Queued">Queued...</span>`;
+      document.getElementById('errorOutput').style.display = "none";
+      
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      try {
+        const res = await fetch('/submissions', {
+          method: 'POST', 
+          headers: headers,
+          body: JSON.stringify({ 
+              problem_id: parseInt(document.getElementById('probSelect').value), 
+              language: document.getElementById('langSelect').value, 
+              code: editor.getValue(), 
+              contest_id: 1, 
+              client_id: clientId 
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          alert("Submission failed: " + (data.detail || "Internal Server Error. Check terminal."));
+          document.getElementById('verdictTag').innerHTML = `<span class="badge badge-error">Failed</span>`;
+        } else {
+          pollStatus(data.submission_id);
+        }
+      } catch (error) {
+        alert("Network error: Could not reach the server.");
+        document.getElementById('verdictTag').innerHTML = `<span class="badge badge-error">Network Error</span>`;
+      }
+    }
+
+    async function pollStatus(subId) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch('/submissions');
+          if (!res.ok) return;
+          const items = await res.json();
+          const data = items.find(s => s.id === subId);
+          
+          if (!data) return;
+
+          if (data.status === "Queued" || data.status === "Compiling..." || data.status.startsWith("Running")) {
+            document.getElementById('verdictTag').innerHTML = `<span class="badge badge-Queued">${data.status}</span>`;
+          } else {
+            clearInterval(interval);
+            const badgeClass = data.status === "Accepted" ? "badge-Accepted" : (data.status === "Partial" ? "badge-Partial" : "badge-error");
+            document.getElementById('verdictTag').innerHTML = `<span class="badge ${badgeClass}">${data.status}</span>`;
+            document.getElementById('metricScore').innerText = `${data.score} / ${data.total_score}`;
+            document.getElementById('metricTime').innerText = `${data.execution_time_ms} ms`;
+            document.getElementById('metricMem').innerText = `${data.peak_memory_mb} MB`;
+            if (data.error) {
+              const errBox = document.getElementById('errorOutput');
+              errBox.innerText = data.error;
+              errBox.style.display = "block";
+            }
+            fetchHistory();
+          }
+        } catch (e) {
+          console.error("Polling fallback encountered an issue:", e);
+        }
+      }, 500);
+    }
+
+    async function fetchHistory() {
+      const res = await fetch('/submissions'); 
+      const items = await res.json();
+      
+      document.getElementById('historyList').innerHTML = items.map(s => `
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #1a3c75;">
+          <span style="text-align: left;">#${s.id} [${s.language}]</span>
+          <span style="text-align: center;">${s.score}/${s.total_score} pts</span>
+          <span style="text-align: right; font-weight: bold; color:${s.status === 'Accepted' ? '#00e676' : '#ff5252'}">${s.status}</span>
+        </div>
+      `).join('');
+    }
+
+    window.onload = () => { updateAuthStatus(); fetchProblems(); connectWebSocket(); };
+  </script>
+</body>
+</html>
